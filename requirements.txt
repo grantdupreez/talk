@@ -3,4 +3,3 @@ google-generativeai
 speechrecognition
 gtts
 playsound
-tempfile
