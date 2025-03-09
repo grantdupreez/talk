@@ -1,166 +1,118 @@
+# https://blog.futuresmart.ai/building-a-conversational-voice-chatbot-integrating-openais-speech-to-text-text-to-speech
+# Reference: See above
+
 import streamlit as st
+import hmac
+# import argparse
+
 import os
-import toml
-import google.generativeai as genai
-import speech_recognition as sr
-from gtts import gTTS
-import tempfile
-from playsound import playsound
+from helpers import text_to_speech, autoplay_audio, speech_to_text
+from generate_answer import base_model_chatbot, with_pdf_chatbot
+from audio_recorder_streamlit import audio_recorder
+from streamlit_float import *
 
-# Load API Key from config
-toml_config = toml.load('config.toml')
-api_key = toml_config['api_keys']['gemini']
+def main(answer_mode: str):
+    # Float feature initialization
+    float_init()
 
-# Configure Google Gemini API
-os.environ["GOOGLE_API_KEY"] = api_key
-model = genai.GenerativeModel('gemini-1.5-pro-latest')
 
-def speak(text):
-    tts = gTTS(text=text, lang="en")
-    
-    temp_audio_path = os.path.join(tempfile.gettempdir(), "response.mp3")
+    def check_password():
+        """Returns `True` if the user had a correct password."""
 
-    # Ensure file is deleted before saving
-    if os.path.exists(temp_audio_path):
-        
-        try:
-            os.remove(temp_audio_path)
-        except PermissionError:
-            print("File is in use and cannot be deleted.")
-            return
+        def login_form():
+            """Form with widgets to collect user information"""
+            with st.form("Credentials"):
+                st.text_input("Username", key="username")
+                st.text_input("Password", type="password", key="password")
+                st.form_submit_button("Log in", on_click=password_entered)
 
-    tts.save(temp_audio_path)
-    playsound(temp_audio_path)
-
-def listen():
-    recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
-        st.write("🎙️ Listening...")
-        recognizer.adjust_for_ambient_noise(source)
-        audio = recognizer.listen(source)
-    try:
-        return recognizer.recognize_google(audio)
-    except sr.UnknownValueError:
-        return ""
-    except sr.RequestError:
-        return "Speech service unavailable"
-
-def app():
-    st.markdown("""
-        <style>
-            .container {
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                flex-direction: column;
-                height: 70vh;
-            }
-            .ball {
-                width: 220px;
-                height:220px;
-                background-color: #ff5733;
-                border-radius: 50%;
-                animation: pulse 1.5s infinite;
-                margin-bottom: 30px;
-            }
-            @keyframes pulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.5); }
-                100% { transform: scale(1); }
-            }
-            
-            .user-msg, .bot-msg {
-                display: flex;
-                align-items: center;
-                padding: 10px;
-                border-radius: 10px;
-                margin: 8px 0;
-                width: fit-content;
-                max-width: 80%;
-            }
-            .user-msg {
-                background: #3b82f6;
-                color: white;
-                align-self: flex-end;
-                margin-left: auto;
-            }
-            .bot-msg {
-                background: #22c55e;
-                color: white;
-                align-self: flex-start;
-            }
-        </style>
-    """, unsafe_allow_html=True)
-    
-    st.title("🎙️ Voice-to-Voice Chatbot")
-    
-
-    col1, col2,col_div,col3 = st.columns([0.3,1.4,0.1, 2])
-
-    
-    with col2:
-        st.subheader('')
-        st.subheader('')
-        st.write('')    
-        st.markdown('<div class="ball"></div>', unsafe_allow_html=True)
-        st.subheader('')
-        st.write('')
-        st.write('')
-        st.write('')
-        st.markdown(
-            """
-            <style>
-                .stButton>button {
-                    font-size: 20px !important;
-                    padding: 15px 25px !important;
-                    font-weight: bold
-                }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
-
-        start_chat = st.button("🔊 Tap to Start")
-
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-        if "chat_history" not in st.session_state:
-            st.session_state.chat_history = []
-
-    with col_div:
-        st.write('')
-        st.markdown(
-            '''
-            <div class="divider-vertical-line"></div>
-            <style>
-                .divider-vertical-line {
-                    border-left: 3px solid #FFFFFF; 
-                    height: 620px;
-                    margin: auto;
-                }
-            </style>
-            ''',
-            unsafe_allow_html=True
-        )
-    
-    with col3:
-
-        if start_chat:
-            st.write("🎤 Say something...")
-            user_input = listen()
-            if user_input:
-                st.session_state.chat_history.append(("You", user_input))
-                st.write("🤖 Chatbot is thinking...")
-                response = model.generate_content(user_input).text
-                st.session_state.chat_history.append(("Chatbot", response))
-                speak(response)
-        
-        for role, text in st.session_state.chat_history:
-            if role == "You":
-                st.markdown(f'<div class="user-msg">🗨️ {text}</div>', unsafe_allow_html=True)
+        def password_entered():
+            """Checks whether a password entered by the user is correct."""
+            if st.session_state["username"] in st.secrets[
+                "passwords"
+            ] and hmac.compare_digest(
+                st.session_state["password"],
+                st.secrets.passwords[st.session_state["username"]],
+            ):
+                st.session_state["password_correct"] = True
+                del st.session_state["password"]  
+                del st.session_state["username"]
             else:
-                st.markdown(f'<div class="bot-msg">🤖 {text}</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+                st.session_state["password_correct"] = False
 
+        # Return True if the username + password is validated.
+        if st.session_state.get("password_correct", False):
+            return True
+
+        # Show inputs for username + password.
+        login_form()
+        if "password_correct" in st.session_state:
+            st.error("😕 User not known or password incorrect")
+        return False
+
+
+    if not check_password():
+        st.stop()
+
+
+    def initialize_session_state():
+        if "messages" not in st.session_state:
+            st.session_state.messages = [
+                {"role": "assistant", "content": "Hi! How may I assist you today?"}
+            ]
+
+
+    initialize_session_state()
+
+    st.title("OpenAI Conversational Chatbot 🤖")
+
+    # Create footer container for the microphone
+    footer_container = st.container()
+    with footer_container:
+        audio_bytes = audio_recorder()
+
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.write(message["content"])
+
+    if audio_bytes:
+        # Write the audio bytes to a file
+        with st.spinner("Transcribing..."):
+            webm_file_path = "temp_audio.mp3"
+            with open(webm_file_path, "wb") as f:
+                f.write(audio_bytes)
+
+            transcript = speech_to_text(webm_file_path)
+            if transcript:
+                st.session_state.messages.append({"role": "user", "content": transcript})
+                with st.chat_message("user"):
+                    st.write(transcript)
+                os.remove(webm_file_path)
+
+    if st.session_state.messages[-1]["role"] != "assistant":
+        with st.chat_message("assistant"):
+            with st.spinner("Thinking🤔..."):
+                if answer_mode == 'base_model':
+                    final_response = base_model_chatbot(st.session_state.messages)
+                elif answer_mode == 'pdf_chat':
+                    print('--------->', st.session_state.messages)
+                    final_response = with_pdf_chatbot(st.session_state.messages)
+            with st.spinner("Generating audio response..."):
+                audio_file = text_to_speech(final_response)
+                autoplay_audio(audio_file)
+            st.write(final_response)
+            st.session_state.messages.append({"role": "assistant", "content": final_response})
+            os.remove(audio_file)
+
+    # Float the footer container and provide CSS to target it with
+    footer_container.float("bottom: 0rem;")
+ 
 if __name__ == "__main__":
-    app()
+    # parser = argparse.ArgumentParser(description="Run OpenAI Conversational Chatbot")
+    # parser.add_argument('--answer_mode', type=str, default='base_model',
+    #                     choices=['base_model', 'pdf_chat'],
+    #                     help="Specify the answer mode ('base_model' or 'pdf_chat')")
+
+    # args = parser.parse_args()
+
+    main(answer_mode='base_model') # Or: answer_mode='base_model'
