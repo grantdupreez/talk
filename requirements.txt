@@ -1,8 +1,1 @@
 streamlit
-os
-time
-speechrecognition
-gtts
-playsound
-tempfile
-toml
