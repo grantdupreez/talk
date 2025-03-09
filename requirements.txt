@@ -5,8 +5,6 @@ os
 time
 langchain
 langchain-google-genai
-langchain-community
-re
 speechrecognition
 gtts
 playsound
