@@ -1,6 +1,7 @@
 from openai import OpenAI
 import os
 import base64
+import hmac
 import streamlit as st
 
 api_key=st.secrets["auth_key"]
