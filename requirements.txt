@@ -3,8 +3,6 @@ google-generativeai
 toml
 os
 time
-langchain
-langchain-google-genai
 speechrecognition
 gtts
 playsound
