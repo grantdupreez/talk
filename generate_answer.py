@@ -15,13 +15,7 @@ from langchain_community.chat_models import ChatOpenAI
 from langchain.chains import RetrievalQA
 from langchain.memory import ConversationBufferMemory
 
-
-load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
-
-client = OpenAI(api_key=api_key)
-openai.api_key = api_key
-
+openai.api_key = st.secrets["auth_key"]
 
 def base_model_chatbot(messages):
     system_message = [
