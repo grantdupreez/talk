@@ -10,8 +10,8 @@ from openai import OpenAI
 
 api_key = st.secrets["auth_key"]
 
-openai.api_key = api_key
 client = OpenAI(api_key=api_key)
+openai.api_key = api_key
 
 def speech_to_text(audio_data):
     with open(audio_data, "rb") as audio_file:
