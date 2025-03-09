@@ -2,9 +2,10 @@ from openai import OpenAI
 import os
 import base64
 import streamlit as st
-api_key = st.secrets["auth_key"]
 
-client = OpenAI(api_key=api_key)
+api_key=st.secrets["auth_key"]
+
+client=OpenAI(api_key=api_key)
 
 def get_answer(messages):
     system_message = [{"role": "system", "content": "You are an helpful AI chatbot, that answers questions asked by User."}]
