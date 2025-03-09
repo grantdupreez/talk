@@ -1,9 +1,8 @@
 streamlit
-google-generativeai
-toml
 os
 time
 speechrecognition
 gtts
 playsound
 tempfile
+toml
