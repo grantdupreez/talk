@@ -1,4 +1,5 @@
 import streamlit as st
+import hmac
 import os
 from utils import get_answer, text_to_speech, autoplay_audio, speech_to_text
 from audio_recorder_streamlit import audio_recorder
