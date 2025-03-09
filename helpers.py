@@ -7,13 +7,8 @@ import streamlit as st
 import os
 import openai
 from openai import OpenAI
-from dotenv import load_dotenv
 
-load_dotenv()
-api_key = os.getenv("OPENAI_API_KEY")
-
-client = OpenAI(api_key=api_key)
-openai.api_key = api_key
+openai.api_key = st.secrets["auth_key"]
 
 def speech_to_text(audio_data):
     with open(audio_data, "rb") as audio_file:
