@@ -44,9 +44,6 @@ if not check_password():
     st.stop()
 
 
-
-
-
 # Float feature initialization
 float_init()
 
@@ -61,6 +58,11 @@ def initialize_session_state():
 initialize_session_state()
 
 st.title("OpenAI Conversational Chatbot 🤖")
+
+uploaded_files = st.file_uploader("Choose your pdf file",  accept_multiple_files=False)
+    if uploaded_files:
+        file_name=uploaded_files.name
+        file_upload = client.files.upload(path=file_name)
 
 # Create footer container for the microphone
 footer_container = st.container()
